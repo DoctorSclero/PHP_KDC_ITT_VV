@@ -13,49 +13,36 @@ if (isset($_POST['nonce'])) {
         // Il nonce è valido la richiesta non è riprodotta quindi procedo.
         require_once './vendor/database.php';
 
-        $submitted_email = $_POST['email'];
-        $submitted_password = $_POST['password'];
+        // Recupero i dati dal form
+        $email = $_POST['email'];
+        $password = $_POST['password'];
+        $confirm_password = $_POST['confirm_password'];
 
-        // Prima di fare le query sanifico i dati per evitare attacchi di SQL Injection
+        // Verifico che le password siano uguali
+        if ($password !== $confirm_password) {
+            // Le password non sono uguali
+            header('Location: /register.php?error=passwords_not_match');
+            exit;
+        }
+
+        // Controllo che l'email non sia già stata usata ma prima la sanifico
         // per farlo uso un prepared statement di mysqli.
-        $query = $connection->prepare("SELECT email, salt, hash FROM users WHERE email = ?");
+        $query = $connection->prepare("SELECT email FROM users WHERE email = ?");
         // Bindiamo i parametri al prepared statement.
         $query->bind_param("s", $submitted_email);
         // Eseguiamo la query per ottenere i risultati
         $result = $connection->query($query);
-        
+
         // Se la ricerca ha prodotto risultati allora esiste un account
         // associato all'email inserita.
-        
         if ($result->num_rows > 0) {
-            // Estraggo i dati dell'utente.
-            $db_stored_user = $result->fetch_assoc();
-            // Estraggo il salt e l'hash.
-            $db_user_salt = $db_stored_user['salt'];
-            $db_user_hash = $db_stored_user['hash'];
-            // Genero l'hash della password inserita dall'utente insieme al sale.
-            $password_hash = hash('sha256', $submitted_password . $db_user_salt);
-            // Verifico che l'hash della password inserita dall'utente
-            // sia uguale a quello salvato nel database.
-            if ($password_hash === $db_user_hash) {
-                // Se l'hash è uguale allora l'utente ha inserito la password corretta.
-                // Imposto l'id dell'utente nella sessione.
-                $_SESSION['user_email'] = $db_stored_user['email'];
-                // Ora l'utente è loggato quindi posso reindirizzarlo alla dashboard.
-                header('Location: /dashboard.php');
-            } else {
-                // Se l'hash non corrisponde allora l'utente ha inserito la password sbagliata.
-                // E notifico alla pagina che la password è sbagliata per visualizzare un errore.
-                // Reindirizzo l'utente alla pagina di login.
-                header('Location: /login.php?error=wrong_password');
-            }
-        } else {
-            // Se la ricerca non ha prodotto risultati allora non esiste un account
-            // associato all'email inserita.
-            // E notifico alla pagina che la password è sbagliata per visualizzare un errore.
-            // Reindirizzo l'utente alla pagina di login.
-            header('Location: /login.php?error=account_not_found');
+            // L'email è già stata usata
+            header('Location: /register.php?error=email_already_used');
+            exit;
         }
+
+        // Genero un salt casuale
+        $salt = bin2hex(random_bytes(32));
     }
 }
 ?>
@@ -77,7 +64,7 @@ if (isset($_POST['nonce'])) {
         <div class="h-100 d-flex justify-content-center align-items-center">
             <div class="content text-center">
                 <div class="mb-3">
-                    <h1>Login</h1>
+                    <h1>Register</h1>
                 </div>    
                 <form method="POST">
                     <!--
@@ -94,7 +81,10 @@ if (isset($_POST['nonce'])) {
                     <div class="mb-3">
                         <input type="password" class="form-control" name="" id="" placeholder="Password" title="Password">
                     </div>
-                    <button type="submit" class="btn btn-primary">Login</button>
+                    <div class="mb-3">
+                        <input type="password" class="form-control" name="" id="" placeholder="Confirm Password" title="Confirm Password">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Register</button>
                     <a class="btn btn-secondary" href="index.php" role="button">Back</a>
                 </form>
             </div>

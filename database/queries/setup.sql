@@ -1,0 +1,7 @@
+
+CREATE TABLE users (
+	email VARCHAR(254) NOT NULL,
+    salt VARCHAR(25) NOT NULL,
+    hash VARCHAR(64) NOT NULL,
+    PRIMARY KEY (email)
+)

@@ -7,6 +7,9 @@ RUN pecl install xdebug \
 # Enable apache mod rewrite
 RUN a2enmod rewrite
 
+# Enable mysqli
+RUN docker-php-ext-install mysqli && docker-php-ext-enable mysqli
+
 # Copy extension configuration files to the container
 ADD config /usr/local/etc/php/conf.d
 
