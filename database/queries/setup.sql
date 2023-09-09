@@ -6,3 +6,8 @@ CREATE TABLE users (
     PRIMARY KEY (id),
     UNIQUE(email)
 )
+
+CREATE TABLE conversations (
+    id INTEGER AUTO_INCREMENT NOT NULL,
+    key VARCHAR(64) NOT NULL,
+)

@@ -50,7 +50,7 @@ if (isset($_POST['nonce'])) {
                 $result = $connection->query("INSERT INTO users (email, salt, hash) VALUES ('$email', '$salt', '$password_hash')");
 
                 // Controllo se ci sono stati errori durante l'esecuzione della query.
-                if (!$result) {
+                if ($result) {
                     // Ora l'utente è registrato quindi posso reindirizzarlo alla pagina di login.
                     header('Location: /login.php?success=account_created');
                 } else {

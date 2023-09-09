@@ -7,10 +7,12 @@ require_once __DIR__ . '/utils/database.php';
 
 $ERROR = null; // Variabile per registrare eventuali errori di accesso
 
+// Se l'utente è già loggato lo reindirizzo alla dashboard.
 if (isset($_SESSION['user_email'])) {
     header('Location: /dashboard.php');
 }
 
+// Verifico che la richiesta non sia riprodotta
 if (isset($_POST['nonce'])) {
 
     if (Nonce::verify($_POST['nonce'])) {

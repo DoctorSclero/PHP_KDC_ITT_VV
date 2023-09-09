@@ -4,7 +4,9 @@ session_start();
 
 require_once __DIR__ . '/utils/database.php';
 
-// Controllo se l'utente è loggato
+$ERROR = null; // Variabile per gestire la visualizzazione degli errori
+
+// Controllo se l'utente non è loggato
 if (!isset($_SESSION['user_email'])) {
     // L'utente non è loggato, lo rimando alla home page
     header('Location: /index.php');
@@ -21,9 +23,14 @@ if (isset($_POST["contact_email"])) {
     // Controllo se l'email del contatto è presente nel database
     $results = $connection->query("SELECT * FROM users WHERE email = '$contact_email'");
 
-    if ($results->num_rows == 0) {
+    if ($results->num_rows !== 0) {
+        // L'email del contatto è presente nel database 
+        
+        // Verifico che non ci siano comunicazioni già attive
+    } else {
         // L'email del contatto non è presente nel database
         // Avviso l'utente che l'email inserita non è valida
+        $ERROR = "user_not_found";
     }
 }
 
