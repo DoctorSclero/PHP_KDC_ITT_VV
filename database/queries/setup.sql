@@ -10,4 +10,5 @@ CREATE TABLE users (
 CREATE TABLE conversations (
     id INTEGER AUTO_INCREMENT NOT NULL,
     key VARCHAR(64) NOT NULL,
+    
 )

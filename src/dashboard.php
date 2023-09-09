@@ -26,7 +26,7 @@ if (isset($_POST["contact_email"])) {
     if ($results->num_rows !== 0) {
         // L'email del contatto è presente nel database 
         
-        // Verifico che non ci siano comunicazioni già attive
+        $results = $connection->query("INSERT INTO conversations (user")
     } else {
         // L'email del contatto non è presente nel database
         // Avviso l'utente che l'email inserita non è valida
