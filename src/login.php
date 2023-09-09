@@ -2,32 +2,30 @@
 
 session_start();
 
+require_once __DIR__ . '/utils/nonce.php';
+require_once __DIR__ . '/utils/database.php';
+
+$ERROR = null; // Variabile per registrare eventuali errori di accesso
+
 if (isset($_SESSION['user_email'])) {
     header('Location: /dashboard.php');
 }
 
-require_once './vendor/nonce.php';
-
 if (isset($_POST['nonce'])) {
+
     if (Nonce::verify($_POST['nonce'])) {
         // Il nonce è valido la richiesta non è riprodotta quindi procedo.
-        require_once './vendor/database.php';
 
         $submitted_email = $_POST['email'];
         $submitted_password = $_POST['password'];
 
-        // Prima di fare le query sanifico i dati per evitare attacchi di SQL Injection
-        // per farlo uso un prepared statement di mysqli.
-        $query = $connection->prepare("SELECT email, salt, hash FROM users WHERE email = ?");
-        // Bindiamo i parametri al prepared statement.
-        $query->bind_param("s", $submitted_email);
-        // Eseguiamo la query per ottenere i risultati
-        $result = $connection->query($query);
+        // Verifico che non ci sia un account già registrato con la stessa email.
+        $result = $connection->query("SELECT email, salt, hash FROM users WHERE email = '$submitted_email'");
         
         // Se la ricerca ha prodotto risultati allora esiste un account
         // associato all'email inserita.
         
-        if ($result->num_rows > 0) {
+        if ($result->num_rows> 0) {
             // Estraggo i dati dell'utente.
             $db_stored_user = $result->fetch_assoc();
             // Estraggo il salt e l'hash.
@@ -47,15 +45,19 @@ if (isset($_POST['nonce'])) {
                 // Se l'hash non corrisponde allora l'utente ha inserito la password sbagliata.
                 // E notifico alla pagina che la password è sbagliata per visualizzare un errore.
                 // Reindirizzo l'utente alla pagina di login.
-                header('Location: /login.php?error=wrong_password');
+                $ERROR = 'wrong_password';
             }
         } else {
             // Se la ricerca non ha prodotto risultati allora non esiste un account
             // associato all'email inserita.
             // E notifico alla pagina che la password è sbagliata per visualizzare un errore.
             // Reindirizzo l'utente alla pagina di login.
-            header('Location: /login.php?error=account_not_found');
+            $ERROR = 'account_not_found';
         }
+    } else {
+        // Il nonce non è valido quindi la richiesta è riprodotta.
+        // Reindirizzo l'utente alla pagina di login.
+        $ERROR = 'replay_attack';
     }
 }
 ?>
@@ -68,39 +70,52 @@ if (isset($_POST['nonce'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ITT KDC</title>
     <link rel="shortcut icon" href="./assets/stemma_IISVV.png" type="image/x-icon">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
-    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 
 <body>
-    <div class="vh-100 bg-light">
-        <div class="h-100 d-flex justify-content-center align-items-center">
-            <div class="content text-center">
-                <div class="mb-3">
-                    <h1>Login</h1>
-                </div>    
-                <form method="POST">
-                    <!--
-                        Per rendere sicuro il form dalla da attacchi di replica facciamo uso di un nonce.
-                        Lo facciamo inserire dal server all'interno del form in modo che ci venga restituito
-                        al momento della submit. Se il nonce non corrisponde a quello generato dal server
-                        allora il form non viene accettato in quanto potrebbe essere una replica di una richiesta
-                        effettuata in precedenza. (Attacco di replica)
-                    -->
-                    <input type="hidden" name="nonce" value="<?php echo Nonce::generate_and_store(); ?>">
-                    <div class="mb-3">
-                        <input type="email" class="form-control" name="" id="" placeholder="Email" title="Email">
-                    </div>
-                    <div class="mb-3">
-                        <input type="password" class="form-control" name="" id="" placeholder="Password" title="Password">
-                    </div>
-                    <button type="submit" class="btn btn-primary">Login</button>
-                    <a class="btn btn-secondary" href="index.php" role="button">Back</a>
-                </form>
-            </div>
-        </div>
+    <div>
+        <a href="/index.php">Indietro</a>
+
+        <h1>Login</h1>
+            
+        <?php
+        // Controllo se l'utente è stato appena registrato.
+        if (isset($_GET["success"]) && $_GET["success"] == "account_created") {
+            echo '<div class="success">Account creato con successo!</div>';
+        }
+
+        // Controllo se c'è qualche messaggio di errore da visualizzare.
+        if (isset($ERROR)) {
+            switch ($ERROR) {
+                case 'replay_attack':
+                    echo '<div class="error">Richiesta riprodotta!</div>';
+                    break;
+                case 'account_not_found':
+                    echo '<div class="error">Account non trovato!</div>';
+                    break;
+                case 'wrong_password':
+                    echo '<div class="error">Password errata!</div>';
+                    break;
+            }
+        }
+
+        ?>
+        
+        <form method="POST">
+            <!--
+                Per rendere sicuro il form dalla da attacchi di replica facciamo uso di un nonce.
+                Lo facciamo inserire dal server all'interno del form in modo che ci venga restituito
+                al momento della submit. Se il nonce non corrisponde a quello generato dal server
+                allora il form non viene accettato in quanto potrebbe essere una replica di una richiesta
+                effettuata in precedenza. (Attacco di replica)
+            -->
+            <input type="hidden" name="nonce" value="<?php echo Nonce::generate_and_store(); ?>">
+            <input type="email" name="email" id="email" placeholder="Email">
+            <input type="password" name="password" id="password" placeholder="Password">
+            <input type="submit" value="Login">
+        </form>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
 </body>
 
 </html>

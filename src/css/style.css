@@ -1,0 +1,22 @@
+.btn-danger {
+    background-color: #de2f18;
+    border-radius: .4em;
+    padding: .5rem 1rem;
+    text-decoration: none;
+    color: white;
+    font-weight: bold;
+}
+label {
+    display: block;
+    margin: 0.5rem 0;
+}
+
+.error {
+    color: red;
+    margin-bottom: 1rem;
+}
+
+.success {
+    color: green;
+    margin-bottom: 1rem;
+}

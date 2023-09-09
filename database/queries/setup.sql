@@ -1,7 +1,8 @@
-
 CREATE TABLE users (
+    id INTEGER AUTO_INCREMENT NOT NULL,
 	email VARCHAR(254) NOT NULL,
-    salt VARCHAR(25) NOT NULL,
+    salt VARCHAR(32) NOT NULL,
     hash VARCHAR(64) NOT NULL,
-    PRIMARY KEY (email)
+    PRIMARY KEY (id),
+    UNIQUE(email)
 )
