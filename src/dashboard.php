@@ -1,6 +1,6 @@
 <?php 
 
-session_start();
+session_start(); // Inizializzo la sessione. (Necessario per accedere alla variabile $_SESSION)
 
 require_once __DIR__ . '/utils/database.php';
 
@@ -8,8 +8,8 @@ $ERROR = null; // Variabile per gestire la visualizzazione degli errori
 
 // Controllo se l'utente non è loggato
 if (!isset($_SESSION['user_email'])) {
-    // L'utente non è loggato, lo rimando alla home page
-    header('Location: /index.php');
+    // L'utente non è loggato, lo rimando alla pagina di login
+    header('Location: /login.php');
     exit();
 }
 
@@ -20,16 +20,33 @@ if (isset($_POST["contact_email"])) {
     // recupero l'email del contatto
     $contact_email = $_POST["contact_email"];
 
-    // Controllo se l'email del contatto è presente nel database
+    // Controllo se esiste un utente con l'email inserita
     $results = $connection->query("SELECT * FROM users WHERE email = '$contact_email'");
 
     if ($results->num_rows !== 0) {
-        // L'email del contatto è presente nel database 
-        
-        $results = $connection->query("INSERT INTO conversations (user")
+        // L'utente esiste
+
+        // Verifico ora se esiste già una conversazione tra i due utenti
+        $user_email = $_SESSION['user_email'];
+        $results = $connection->query("SELECT * FROM conversations WHERE (user1 = '$user_email' AND user2 = '$contact_email') OR (user1 = '$contact_email' AND user2 = '$user_email')");
+
+        if ($results->num_rows === 0) {
+            // Non esiste una conversazione tra i due utenti
+            // Genero casualmente una nuova chiave per la cifratura della conversazione
+            $key = bin2hex(random_bytes(32));
+
+            // Creo una nuova conversazione
+            $connection->query("INSERT INTO conversations (first_user, second_user, shared_key) VALUES ('$user_email', '$contact_email', '$key')");
+
+            // Indirizzo l'utente alla pagina della conversazione
+            header("Location: /chat.php?with=$contact_email");
+        } else {
+            // Esiste già una conversazione tra i due utenti
+            // indirizzo l'utente alla pagina della conversazione
+            header("Location: /chat.php?with=$contact_email");
+        }
     } else {
-        // L'email del contatto non è presente nel database
-        // Avviso l'utente che l'email inserita non è valida
+        // L'utente cercato non esiste, informo l'utente
         $ERROR = "user_not_found";
     }
 }

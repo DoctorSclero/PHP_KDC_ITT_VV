@@ -1,6 +1,6 @@
 <?php
 
-session_start();
+session_start(); // Inizializzo la sessione. (Necessario per accedere alla variabile $_SESSION)
 
 require_once __DIR__ . '/utils/nonce.php';
 require_once __DIR__ . '/utils/database.php';
