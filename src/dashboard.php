@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 session_start(); // Inizializzo la sessione. (Necessario per accedere alla variabile $_SESSION)
 
@@ -6,56 +6,68 @@ require_once __DIR__ . '/utils/database.php';
 
 $ERROR = null; // Variabile per gestire la visualizzazione degli errori
 
-// Controllo se l'utente non è loggato
-if (!isset($_SESSION['user_email'])) {
+// Verifico che l'utente sia loggato
+if (!isset($_SESSION['user_id'])) {
     // L'utente non è loggato, lo rimando alla pagina di login
     header('Location: /login.php');
     exit();
 }
 
-// Controllo se l'utente vuole conversare con qualcuno
-// verificando i campi del form
-if (isset($_POST["contact_email"])) {
+// Verifico se la richiesta sia una 
+// richiesta di avvio di una conversazione
+if (isset($_POST)) {
     // L'utente vuole conversare con qualcuno
-    // recupero l'email del contatto
-    $contact_email = $_POST["contact_email"];
+    try {
 
-    // Controllo se esiste un utente con l'email inserita
-    $results = $connection->query("SELECT * FROM users WHERE email = '$contact_email'");
+        // Recupero i dati necessari
+        $sender = $_SESSION["user_id"];
+        $recipient = $connection->query(
+            "SELECT id FROM users WHERE email = '{$_POST["recipient_email"]}'"
+        )->fetch_assoc()["id"];
 
-    if ($results->num_rows !== 0) {
-        // L'utente esiste
+        // Verifico che il destinatario sia presente nel database
+        if (empty($recipient)) {
+            // Il destinatario non è presente lancio un errore
+            throw new Exception("recipient_not_found");
+        }
 
         // Verifico ora se esiste già una conversazione tra i due utenti
-        $user_email = $_SESSION['user_email'];
-        $results = $connection->query("SELECT * FROM conversations WHERE (user1 = '$user_email' AND user2 = '$contact_email') OR (user1 = '$contact_email' AND user2 = '$user_email')");
+        $conversation = $connection->query(
+            "SELECT * FROM conversations C WHERE
+            (from_user = '$sender' AND to_user = '$recipient') OR
+            (from_user = '$recipient' AND to_user = '$sender')"
+        );
 
-        if ($results->num_rows === 0) {
+        // Verifico se la conversazione è presente
+        if ($conversation->num_rows === 0) {
             // Non esiste una conversazione tra i due utenti
+            // quindi ne creo una nuova
+
             // Genero casualmente una nuova chiave per la cifratura della conversazione
-            $key = bin2hex(random_bytes(32));
+            $shared_key = bin2hex(random_bytes(32));
 
             // Creo una nuova conversazione
-            $connection->query("INSERT INTO conversations (first_user, second_user, shared_key) VALUES ('$user_email', '$contact_email', '$key')");
+            $connection->query(
+                "INSERT INTO conversations (first_user, second_user, shared_key) VALUES 
+                    ('$sender', '$recipient', '$shared_key')"
+            );
 
             // Indirizzo l'utente alla pagina della conversazione
-            header("Location: /chat.php?with=$contact_email");
+            header("Location: /chat.php?with=$recipient");
         } else {
             // Esiste già una conversazione tra i due utenti
             // indirizzo l'utente alla pagina della conversazione
-            header("Location: /chat.php?with=$contact_email");
+            header("Location: /chat.php?with=$recipient");
         }
-    } else {
-        // L'utente cercato non esiste, informo l'utente
-        $ERROR = "user_not_found";
+    } catch (Exception $e) {
+        $ERROR = $e->getMessage();
     }
 }
-
-
 
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -63,6 +75,7 @@ if (isset($_POST["contact_email"])) {
     <link rel="shortcut icon" href="./assets/stemma_IISVV.png" type="image/x-icon">
     <link rel="stylesheet" href="/css/style.css">
 </head>
+
 <body>
     <div>
         <h1>Dashboard</h1>
@@ -70,8 +83,8 @@ if (isset($_POST["contact_email"])) {
         <a name="renew_keys" id="renew_keys" class="btn-danger" href="/renew-keys.php">Elimina Conversazioni</a>
         <h2>Avvia conversazione</h2>
         <form method="POST">
-            <label for="contact_email">Inserisci email della persona con cui vuoi conversare</label>
-            <input type="email" name="contact_email" id="contact_email" placeholder="Email contatto">
+            <label for="recipient_email">Inserisci email della persona con cui vuoi conversare</label>
+            <input type="email" name="recipient_email" id="recipient_email" placeholder="Email destinatario">
             <input type="submit" value="Conversa">
         </form>
         <h2>Conversazioni attive</h2>
@@ -86,4 +99,5 @@ if (isset($_POST["contact_email"])) {
         </ul>
     </div>
 </body>
+
 </html>
