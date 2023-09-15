@@ -14,7 +14,7 @@ if (isset($_SESSION['user_id'])) {
 }
 
 // Verifico se è stata inoltrata una richiesta di login
-if (isset($_POST)) {
+if ($_SERVER["REQUEST_METHOD"] === 'POST') {
     // E' stata inoltrata una richiesta di login
     // pocedo nella gestione della stessa
 

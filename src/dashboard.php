@@ -15,7 +15,7 @@ if (!isset($_SESSION['user_id'])) {
 
 // Verifico se la richiesta sia una 
 // richiesta di avvio di una conversazione
-if (isset($_POST)) {
+if ($_SERVER["REQUEST_METHOD"] === 'POST') {
     // L'utente vuole conversare con qualcuno
     try {
 
@@ -48,7 +48,7 @@ if (isset($_POST)) {
 
             // Creo una nuova conversazione
             $connection->query(
-                "INSERT INTO conversations (first_user, second_user, shared_key) VALUES 
+                "INSERT INTO conversations (from_user, to_user, shared_key) VALUES 
                     ('$sender', '$recipient', '$shared_key')"
             );
 
@@ -89,13 +89,29 @@ if (isset($_POST)) {
         </form>
         <h2>Conversazioni attive</h2>
         <ul>
-            <li><a href="#">tonyscarpetta@siracusa.it</a></li>
-            <li><a href="#">tonyscarpetta@siracusa.it</a></li>
-            <li><a href="#">tonyscarpetta@siracusa.it</a></li>
-            <li><a href="#">tonyscarpetta@siracusa.it</a></li>
-            <li><a href="#">tonyscarpetta@siracusa.it</a></li>
-            <li><a href="#">tonyscarpetta@siracusa.it</a></li>
-            <li><a href="#">tonyscarpetta@siracusa.it</a></li>
+            <?php 
+            $user = $_SESSION["user_id"];
+            
+            // Estraggo le conversazioni attive tra l'utente e gli altri utenti
+            $conversations = $connection->query(
+                "SELECT * FROM conversations WHERE
+                from_user = '$user' OR to_user = '$user'"
+            );
+
+            // Per ogni conversazione attiva estraggo i dati dell'utente con cui si sta conversando
+            while ($conversation = $conversations->fetch_assoc()) {
+                // Estraggo l'id dell'utente con cui si sta conversando
+                $other_user_id = $conversation["from_user"] === $user ? $conversation["to_user"] : $conversation["from_user"];
+
+                // Estraggo i dati dell'utente
+                $other_user = $connection->query(
+                    "SELECT email FROM users WHERE id = '$other_user_id'"
+                )->fetch_assoc();
+
+                // Stampo il nome dell'utente
+                echo "<li><a href='/chat.php?with=$other_user_id'>{$other_user["email"]}</a></li>";
+            }
+            ?>
         </ul>
     </div>
 </body>

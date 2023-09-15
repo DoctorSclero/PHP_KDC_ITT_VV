@@ -25,7 +25,7 @@ CREATE TABLE messages (
     content TEXT NOT NULL,
     sender INTEGER NOT NULL,
     PRIMARY KEY (id),
-    UNIQUE (conversation),
+    UNIQUE (conversation, datetime),
     FOREIGN KEY messages(conversation) REFERENCES conversations(id),
     FOREIGN KEY messages(sender) REFERENCES users(id)
 );
