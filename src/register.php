@@ -60,7 +60,7 @@ if ($_SERVER["REQUEST_METHOD"] === 'POST') {
 
         // Genero l'hash della password aggiungendo in coda il salt
         // utilizzando l'algoritmo sha256.
-        $submitted_user["hash"] = hash('sha256', $submitted_user["password"] . $salt);
+        $submitted_user["hash"] = hash('sha256', $submitted_user["password"] . $submitted_user["salt"]);
 
         // Eseguo la query per salvare i dati nel database.
         $result = $connection->query(
